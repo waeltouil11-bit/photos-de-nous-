@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notre Rendez-vous du Dimanche</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>Us ♡</h1>
+    <p id="status-message">Chargement de la semaine...</p>
+  </header>
+
+  <main>
+    <section class="current-week-card">
+      <div class="timer-tag" id="timer">Dimanche approche...</div>
+      
+      <div class="image-container">
+        <img id="weekly-photo" src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800" alt="Photo de la semaine">
+        <div id="overlay" class="overlay">🔒 Déverrouillage dimanche matin</div>
+      </div>
+
+      <div class="caption-box">
+        <p id="caption-text">"Un petit souvenir secret de notre semaine..."</p>
+      </div>
+    </section>
+
+    <section class="history-section">
+      <h2>Nos souvenirs passés</h2>
+      <div class="history-grid" id="history-grid">
+        </div>
+    </section>
+  </main>
+
+  <script>
+    // --- CONFIGURATION DE VOTRE HISTORIQUE ---
+    // Vous pourrez ajouter vos anciennes photos ici au fil du temps !
+    const archives = [
+      { week: "Semaine 1", src: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=400", caption: "Notre balade du dimanche" },
+      { week: "Semaine 2", src: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=400", caption: "Soirée pizza improvisée" }
+    ];
+
+    // --- LOGIQUE DU DÉFLOUTAGE AUTOMATIQUE ---
+    function checkSunday() {
+      const today = new Date();
+      const dayOfWeek = today.getDay(); // 0 = Dimanche, 1 = Lundi, ...
+      
+      const photo = document.getElementById('weekly-photo');
+      const overlay = document.getElementById('overlay');
+      const statusMessage = document.getElementById('status-message');
+
+      if (dayOfWeek === 0) {
+        // C'est DIMANCHE !
+        photo.classList.remove('blurred');
+        overlay.style.display = 'none';
+        statusMessage.textContent = "✨ Bon dimanche mon amour ! La photo est révélée.";
+      } else {
+        // Du LUNDI au SAMEDI
+        photo.classList.add('blurred');
+        overlay.style.display = 'flex';
+        
+        const daysLeft = 7 - dayOfWeek;
+        statusMessage.textContent = `Rendez-vous dimanche pour découvrir la photo ! (${daysLeft} jour(s) restant(s))`;
+      }
+    }
+
+    // Charger les archives dans la page
+    function loadHistory() {
+      const grid = document.getElementById('history-grid');
+      archives.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        card.innerHTML = `
+          <img src="${item.src}" alt="${item.week}">
+          <div class="history-info">
+            <strong>${item.week}</strong>
+            <p>${item.caption}</p>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // Initialisation
+    checkSunday();
+    loadHistory();
+  </script>
+</body>
+</html>
