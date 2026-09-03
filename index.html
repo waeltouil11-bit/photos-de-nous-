@@ -60,18 +60,20 @@
     </section>
   </main>
 
+  <!-- SDK Firebase CDN Compat -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // ⚠️ METTEZ VOS IDENTIFIANTS FIREBASE ICI ⚠️
+    // Configuration Firebase intégrée
     const firebaseConfig = {
-      apiKey: "VOTRE_API_KEY",
-      authDomain: "VOTRE_PROJECT.firebaseapp.com",
-      projectId: "VOTRE_PROJECT",
-      storageBucket: "VOTRE_PROJECT.appspot.com",
-      messagingSenderId: "...",
-      appId: "..."
+      apiKey: "AIzaSyDGgPS_9oem4QBBVDSNm6qWj1GHflgDQms",
+      authDomain: "notre-album-b83dc.firebaseapp.com",
+      projectId: "notre-album-b83dc",
+      storageBucket: "notre-album-b83dc.firebasestorage.app",
+      messagingSenderId: "960206090389",
+      appId: "1:960206090389:web:de68d3856f2bac726fab9c",
+      measurementId: "G-7DLR79XYRS"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -80,6 +82,7 @@
     let p1Image = null;
     let p2Image = null;
 
+    // Écoute en temps réel des photos envoyées
     db.collection("currentWeek").doc("photos").onSnapshot((doc) => {
       if (doc.exists) {
         const data = doc.data();
