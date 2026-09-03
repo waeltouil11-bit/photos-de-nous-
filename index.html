@@ -14,78 +14,150 @@
   </header>
 
   <main>
-    <section class="current-week-card">
-      <div class="timer-tag" id="timer">Dimanche approche...</div>
-      
-      <div class="image-container">
-        <img id="weekly-photo" src="https://images.unsplash.com/photo-1518199266791-5375a83190b7?q=80&w=800" alt="Photo de la semaine">
-        <div id="overlay" class="overlay">🔒 Déverrouillage dimanche matin</div>
+    <!-- Section d'importation des photos -->
+    <section class="upload-section">
+      <h2>Votre contribution cette semaine</h2>
+      <div class="upload-buttons">
+        <label class="btn-upload Partner1">
+          📷 Photo de [Toi]
+          <input type="file" accept="image/*" onchange="handleFileUpload(event, 'partner1')">
+        </label>
+        <label class="btn-upload Partner2">
+          📷 Photo de [Elle]
+          <input type="file" accept="image/*" onchange="handleFileUpload(event, 'partner2')">
+        </label>
       </div>
-
-      <div class="caption-box">
-        <p id="caption-text">"Un petit souvenir secret de notre semaine..."</p>
+      <div class="status-tracker">
+        <span id="badge-p1" class="badge missing">[Toi] : En attente</span>
+        <span id="badge-p2" class="badge missing">[Elle] : En attente</span>
       </div>
     </section>
 
-    <section class="history-section">
-      <h2>Nos souvenirs passés</h2>
-      <div class="history-grid" id="history-grid">
+    <!-- Zone d'affichage des photos -->
+    <section class="photos-grid">
+      <!-- Photo 1 -->
+      <div class="card">
+        <div class="image-container">
+          <img id="img-p1" src="" alt="Photo 1" class="blurred hidden">
+          <div id="overlay-p1" class="overlay">En attente de la photo...</div>
         </div>
+        <p class="card-label">Photo de [Toi]</p>
+      </div>
+
+      <!-- Photo 2 -->
+      <div class="card">
+        <div class="image-container">
+          <img id="img-p2" src="" alt="Photo 2" class="blurred hidden">
+          <div id="overlay-p2" class="overlay">En attente de la photo...</div>
+        </div>
+        <p class="card-label">Photo de [Elle]</p>
+      </div>
     </section>
+
+    <button class="btn-reset" onclick="resetWeek()">🔄 Réinitialiser la semaine</button>
   </main>
 
   <script>
-    // --- CONFIGURATION DE VOTRE HISTORIQUE ---
-    // Vous pourrez ajouter vos anciennes photos ici au fil du temps !
-    const archives = [
-      { week: "Semaine 1", src: "https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?q=80&w=400", caption: "Notre balade du dimanche" },
-      { week: "Semaine 2", src: "https://images.unsplash.com/photo-1522673607200-164d1b6ce486?q=80&w=400", caption: "Soirée pizza improvisée" }
-    ];
+    // Chargement initial des images depuis le stockage local
+    let p1Image = localStorage.getItem('partner1_photo') || null;
+    let p2Image = localStorage.getItem('partner2_photo') || null;
 
-    // --- LOGIQUE DU DÉFLOUTAGE AUTOMATIQUE ---
-    function checkSunday() {
-      const today = new Date();
-      const dayOfWeek = today.getDay(); // 0 = Dimanche, 1 = Lundi, ...
-      
-      const photo = document.getElementById('weekly-photo');
-      const overlay = document.getElementById('overlay');
-      const statusMessage = document.getElementById('status-message');
+    function handleFileUpload(event, partner) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-      if (dayOfWeek === 0) {
-        // C'est DIMANCHE !
-        photo.classList.remove('blurred');
-        overlay.style.display = 'none';
-        statusMessage.textContent = "✨ Bon dimanche mon amour ! La photo est révélée.";
-      } else {
-        // Du LUNDI au SAMEDI
-        photo.classList.add('blurred');
-        overlay.style.display = 'flex';
-        
-        const daysLeft = 7 - dayOfWeek;
-        statusMessage.textContent = `Rendez-vous dimanche pour découvrir la photo ! (${daysLeft} jour(s) restant(s))`;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Image = e.target.result;
+        if (partner === 'partner1') {
+          p1Image = base64Image;
+          localStorage.setItem('partner1_photo', base64Image);
+        } else {
+          p2Image = base64Image;
+          localStorage.setItem('partner2_photo', base64Image);
+        }
+        updateUI();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function resetWeek() {
+      if (confirm("Voulez-vous supprimer les photos de cette semaine ?")) {
+        localStorage.removeItem('partner1_photo');
+        localStorage.removeItem('partner2_photo');
+        p1Image = null;
+        p2Image = null;
+        updateUI();
       }
     }
 
-    // Charger les archives dans la page
-    function loadHistory() {
-      const grid = document.getElementById('history-grid');
-      archives.forEach(item => {
-        const card = document.createElement('div');
-        card.className = 'history-card';
-        card.innerHTML = `
-          <img src="${item.src}" alt="${item.week}">
-          <div class="history-info">
-            <strong>${item.week}</strong>
-            <p>${item.caption}</p>
-          </div>
-        `;
-        grid.appendChild(card);
-      });
+    function updateUI() {
+      const today = new Date();
+      const isSunday = (today.getDay() === 0);
+
+      const imgP1 = document.getElementById('img-p1');
+      const imgP2 = document.getElementById('img-p2');
+      const overlayP1 = document.getElementById('overlay-p1');
+      const overlayP2 = document.getElementById('overlay-p2');
+      const badgeP1 = document.getElementById('badge-p1');
+      const badgeP2 = document.getElementById('badge-p2');
+      const statusMsg = document.getElementById('status-message');
+
+      // Mettre à jour les badges de statut
+      badgeP1.textContent = p1Image ? "[Toi] : Photo envoyée !" : "[Toi] : En attente";
+      badgeP1.className = `badge ${p1Image ? 'ready' : 'missing'}`;
+      
+      badgeP2.textContent = p2Image ? "[Elle] : Photo envoyée !" : "[Elle] : En attente";
+      badgeP2.className = `badge ${p2Image ? 'ready' : 'missing'}`;
+
+      // Gestion de la photo 1
+      if (p1Image) {
+        imgP1.src = p1Image;
+        imgP1.classList.remove('hidden');
+      } else {
+        imgP1.classList.add('hidden');
+      }
+
+      // Gestion de la photo 2
+      if (p2Image) {
+        imgP2.src = p2Image;
+        imgP2.classList.remove('hidden');
+      } else {
+        imgP2.classList.add('hidden');
+      }
+
+      // RÈGLE : Les deux ont posté ET on est dimanche
+      const bothUploaded = p1Image && p2Image;
+
+      if (bothUploaded && isSunday) {
+        // Condition validée : Défloutage complet !
+        imgP1.classList.remove('blurred');
+        imgP2.classList.remove('blurred');
+        overlayP1.style.display = 'none';
+        overlayP2.style.display = 'none';
+        statusMsg.textContent = "✨ Bon dimanche ! Vos deux photos sont enfin révélées.";
+      } else {
+        // Flou conservé
+        imgP1.classList.add('blurred');
+        imgP2.classList.add('blurred');
+        overlayP1.style.display = 'flex';
+        overlayP2.style.display = 'flex';
+
+        if (!bothUploaded) {
+          statusMsg.textContent = "🔒 Envoyez TOUS LES DEUX votre photo pour débloquer le rendez-vous du dimanche !";
+          overlayP1.textContent = p1Image ? "🔒 En attente de la seconde photo..." : "📷 Importez votre photo";
+          overlayP2.textContent = p2Image ? "🔒 En attente de la seconde photo..." : "📷 Importez votre photo";
+        } else {
+          const daysLeft = 7 - today.getDay();
+          statusMsg.textContent = `🔒 Vos deux photos sont prêtes ! Rendez-vous dimanche. (${daysLeft}j restant(s))`;
+          overlayP1.textContent = "🔒 Se débloque dimanche matin";
+          overlayP2.textContent = "🔒 Se débloque dimanche matin";
+        }
+      }
     }
 
-    // Initialisation
-    checkSunday();
-    loadHistory();
+    // Exécution au chargement
+    updateUI();
   </script>
 </body>
 </html>
