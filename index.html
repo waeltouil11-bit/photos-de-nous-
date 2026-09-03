@@ -60,12 +60,10 @@
     </section>
   </main>
 
-  <!-- SDK Firebase CDN Compat -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
   <script>
-    // Configuration Firebase intégrée
     const firebaseConfig = {
       apiKey: "AIzaSyDGgPS_9oem4QBBVDSNm6qWj1GHflgDQms",
       authDomain: "notre-album-b83dc.firebaseapp.com",
@@ -82,7 +80,6 @@
     let p1Image = null;
     let p2Image = null;
 
-    // Écoute en temps réel des photos envoyées
     db.collection("currentWeek").doc("photos").onSnapshot((doc) => {
       if (doc.exists) {
         const data = doc.data();
@@ -93,23 +90,53 @@
         p2Image = null;
       }
       updateUI();
+    }, (error) => {
+      console.error("Erreur de synchronisation:", error);
     });
+
+    // Fonction pour compresser l'image avant l'envoi
+    function compressAndUpload(file, partner) {
+      document.getElementById('status-message').textContent = "⏳ Compression et envoi de la photo...";
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = function(event) {
+        const img = new Image();
+        img.src = event.target.result;
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800; // Redimensionne la photo pour qu'elle soit fluide et légère
+          const scaleFactor = MAX_WIDTH / img.width;
+          
+          if (img.width > MAX_WIDTH) {
+            canvas.width = MAX_WIDTH;
+            canvas.height = img.height * scaleFactor;
+          } else {
+            canvas.width = img.width;
+            canvas.height = img.height;
+          }
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          // Conversion en JPEG compressé
+          const base64Image = canvas.toDataURL('image/jpeg', 0.7);
+
+          db.collection("currentWeek").doc("photos").set({
+            [partner]: base64Image
+          }, { merge: true }).then(() => {
+            document.getElementById('status-message').textContent = "Photo envoyée avec succès !";
+          }).catch((err) => {
+            alert("Erreur lors de l'envoi : " + err.message);
+          });
+        };
+      };
+    }
 
     function uploadPhoto(event, partner) {
       const file = event.target.files[0];
       if (!file) return;
-
-      document.getElementById('status-message').textContent = "⏳ Envoi de la photo...";
-
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        const base64Image = e.target.result;
-        await db.collection("currentWeek").doc("photos").set({
-          [partner]: base64Image
-        }, { merge: true });
-        document.getElementById('status-message').textContent = "Photo envoyée avec succès !";
-      };
-      reader.readAsDataURL(file);
+      compressAndUpload(file, partner);
     }
 
     async function deletePhoto(partner) {
