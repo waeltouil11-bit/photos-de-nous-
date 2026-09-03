@@ -3,7 +3,8 @@
   --card-bg: #ffffff;
   --accent-color: #e07a5f;
   --text-color: #3d405b;
-  --subtext-color: #81b29a;
+  --success-color: #81b29a;
+  --missing-color: #e76f51;
 }
 
 body {
@@ -19,7 +20,7 @@ body {
 
 header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 25px;
 }
 
 h1 {
@@ -28,39 +29,99 @@ h1 {
   color: var(--accent-color);
 }
 
-p {
-  color: #666;
-  font-size: 0.95rem;
-}
-
-/* Carte principale */
-.current-week-card {
+/* Zone d'importation */
+.upload-section {
   background: var(--card-bg);
-  border-radius: 20px;
-  padding: 15px;
-  max-width: 400px;
+  padding: 20px;
+  border-radius: 16px;
+  max-width: 500px;
   width: 100%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+  text-align: center;
+  margin-bottom: 25px;
   box-sizing: border-box;
 }
 
-.timer-tag {
-  background-color: #f4f1de;
-  color: var(--text-color);
-  font-size: 0.8rem;
+.upload-section h2 {
+  font-size: 1rem;
+  margin-top: 0;
+  margin-bottom: 15px;
+}
+
+.upload-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.btn-upload {
+  background-color: var(--accent-color);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-upload:hover {
+  opacity: 0.9;
+}
+
+.btn-upload input[type="file"] {
+  display: none;
+}
+
+.status-tracker {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 12px;
+  color: white;
   font-weight: bold;
-  padding: 6px 12px;
-  border-radius: 20px;
-  display: inline-block;
-  margin-bottom: 12px;
+}
+
+.badge.ready {
+  background-color: var(--success-color);
+}
+
+.badge.missing {
+  background-color: var(--missing-color);
+}
+
+/* Grille de photos */
+.photos-grid {
+  display: flex;
+  gap: 20px;
+  max-width: 600px;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 12px;
+  flex: 1 1 240px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.04);
+  box-sizing: border-box;
 }
 
 .image-container {
   position: relative;
   width: 100%;
-  height: 380px;
-  border-radius: 15px;
+  height: 280px;
+  border-radius: 12px;
   overflow: hidden;
+  background-color: #eee;
 }
 
 .image-container img {
@@ -70,10 +131,13 @@ p {
   transition: filter 0.8s ease;
 }
 
-/* Effet de flou dynamique */
+.hidden {
+  display: none;
+}
+
 .blurred {
-  filter: blur(25px) brightness(0.9);
-  transform: scale(1.05); /* Évite les bords blancs du flou */
+  filter: blur(30px) brightness(0.85);
+  transform: scale(1.1);
 }
 
 .overlay {
@@ -85,63 +149,29 @@ p {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(0, 0, 0, 0.2);
   color: white;
-  font-weight: 600;
-  font-size: 0.9rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  font-weight: bold;
+  font-size: 0.85rem;
   text-align: center;
-  padding: 20px;
+  padding: 15px;
   box-sizing: border-box;
 }
 
-.caption-box {
-  margin-top: 15px;
+.card-label {
   text-align: center;
-  font-style: italic;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-top: 10px;
+  margin-bottom: 0;
 }
 
-/* Section Historique */
-.history-section {
-  max-width: 400px;
-  width: 100%;
-  margin-top: 40px;
-}
-
-.history-section h2 {
-  font-size: 1.2rem;
-  margin-bottom: 15px;
-}
-
-.history-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-}
-
-.history-card {
-  background: var(--card-bg);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.03);
-}
-
-.history-card img {
-  width: 100%;
-  height: 120px;
-  object-fit: cover;
-}
-
-.history-info {
-  padding: 8px 10px;
-}
-
-.history-info strong {
-  display: block;
+.btn-reset {
+  margin-top: 30px;
+  background: none;
+  border: none;
+  color: #999;
   font-size: 0.8rem;
-}
-
-.history-info p {
-  margin: 2px 0 0 0;
-  font-size: 0.75rem;
+  cursor: pointer;
+  text-decoration: underline;
 }
