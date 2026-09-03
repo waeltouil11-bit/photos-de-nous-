@@ -14,17 +14,16 @@
   </header>
 
   <main>
-    <!-- Section d'importation des photos -->
     <section class="upload-section">
       <h2>Votre contribution cette semaine</h2>
       <div class="upload-buttons">
         <label class="btn-upload Partner1">
           📷 Photo de [Toi]
-          <input type="file" accept="image/*" onchange="handleFileUpload(event, 'partner1')">
+          <input type="file" accept="image/*" onchange="uploadPhoto(event, 'partner1')">
         </label>
         <label class="btn-upload Partner2">
           📷 Photo de [Elle]
-          <input type="file" accept="image/*" onchange="handleFileUpload(event, 'partner2')">
+          <input type="file" accept="image/*" onchange="uploadPhoto(event, 'partner2')">
         </label>
       </div>
       <div class="status-tracker">
@@ -33,9 +32,7 @@
       </div>
     </section>
 
-    <!-- Zone d'affichage des photos de la semaine -->
     <section class="photos-grid">
-      <!-- Photo 1 -->
       <div class="card">
         <div class="image-container">
           <img id="img-p1" src="" alt="Photo 1" class="blurred hidden">
@@ -45,7 +42,6 @@
         <button id="delete-p1" class="btn-delete hidden" onclick="deletePhoto('partner1')">🗑️ Changer la photo</button>
       </div>
 
-      <!-- Photo 2 -->
       <div class="card">
         <div class="image-container">
           <img id="img-p2" src="" alt="Photo 2" class="blurred hidden">
@@ -56,116 +52,71 @@
       </div>
     </section>
 
-    <!-- Section Album Souvenir -->
     <section class="album-section">
       <h2>📖 Notre Album Souvenir</h2>
       <p class="album-subtitle">Toutes vos photos débloquées au fil des semaines</p>
-      <div id="album-grid" class="album-grid">
-        <!-- Les photos archivées s'afficheront ici -->
-      </div>
+      <div id="album-grid" class="album-grid"></div>
       <p id="empty-album-msg" class="empty-msg">Aucun souvenir archivé pour l'instant. Rendez-vous ce dimanche !</p>
     </section>
-
-    <button class="btn-reset" onclick="resetWeek()">🔄 Réinitialiser la semaine actuelle</button>
   </main>
 
-  <script>
-    // Variables locales
-    let p1Image = localStorage.getItem('partner1_photo') || null;
-    let p2Image = localStorage.getItem('partner2_photo') || null;
-    let album = JSON.parse(localStorage.getItem('our_album')) || [];
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
 
-    // Gestion de l'envoi de fichier
-    function handleFileUpload(event, partner) {
+  <script>
+    // ⚠️ METTEZ VOS IDENTIFIANTS FIREBASE ICI ⚠️
+    const firebaseConfig = {
+      apiKey: "VOTRE_API_KEY",
+      authDomain: "VOTRE_PROJECT.firebaseapp.com",
+      projectId: "VOTRE_PROJECT",
+      storageBucket: "VOTRE_PROJECT.appspot.com",
+      messagingSenderId: "...",
+      appId: "..."
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let p1Image = null;
+    let p2Image = null;
+
+    db.collection("currentWeek").doc("photos").onSnapshot((doc) => {
+      if (doc.exists) {
+        const data = doc.data();
+        p1Image = data.partner1 || null;
+        p2Image = data.partner2 || null;
+      } else {
+        p1Image = null;
+        p2Image = null;
+      }
+      updateUI();
+    });
+
+    function uploadPhoto(event, partner) {
       const file = event.target.files[0];
       if (!file) return;
 
+      document.getElementById('status-message').textContent = "⏳ Envoi de la photo...";
+
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         const base64Image = e.target.result;
-        if (partner === 'partner1') {
-          p1Image = base64Image;
-          localStorage.setItem('partner1_photo', base64Image);
-        } else {
-          p2Image = base64Image;
-          localStorage.setItem('partner2_photo', base64Image);
-        }
-        updateUI();
+        await db.collection("currentWeek").doc("photos").set({
+          [partner]: base64Image
+        }, { merge: true });
+        document.getElementById('status-message').textContent = "Photo envoyée avec succès !";
       };
       reader.readAsDataURL(file);
     }
 
-    // Supprimer / Changer une photo individuelle
-    function deletePhoto(partner) {
-      if (confirm("Voulez-vous supprimer cette photo pour en mettre une autre ?")) {
-        if (partner === 'partner1') {
-          localStorage.removeItem('partner1_photo');
-          p1Image = null;
-        } else {
-          localStorage.removeItem('partner2_photo');
-          p2Image = null;
-        }
-        updateUI();
+    async function deletePhoto(partner) {
+      if (confirm("Voulez-vous supprimer cette photo ?")) {
+        await db.collection("currentWeek").doc("photos").set({
+          [partner]: firebase.firestore.FieldValue.delete()
+        }, { merge: true });
       }
     }
 
-    // Réinitialiser uniquement la semaine courante
-    function resetWeek() {
-      if (confirm("Voulez-vous supprimer les photos de la semaine en cours ?")) {
-        localStorage.removeItem('partner1_photo');
-        localStorage.removeItem('partner2_photo');
-        p1Image = null;
-        p2Image = null;
-        updateUI();
-      }
-    }
-
-    // Sauvegarder dans l'album souvenir (automatique le dimanche)
-    function checkAndSaveToAlbum() {
-      const today = new Date();
-      const dateString = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-      
-      // Vérifier si cette paire de photos est déjà enregistrée dans l'album
-      const alreadySaved = album.some(item => item.date === dateString);
-
-      if (!alreadySaved && p1Image && p2Image) {
-        album.push({
-          date: dateString,
-          photo1: p1Image,
-          photo2: p2Image
-        });
-        localStorage.setItem('our_album', JSON.stringify(album));
-      }
-    }
-
-    // Rendu visuel de l'album
-    function renderAlbum() {
-      const albumGrid = document.getElementById('album-grid');
-      const emptyMsg = document.getElementById('empty-album-msg');
-      albumGrid.innerHTML = '';
-
-      if (album.length === 0) {
-        emptyMsg.style.display = 'block';
-        return;
-      }
-
-      emptyMsg.style.display = 'none';
-
-      album.forEach((item) => {
-        const entry = document.createElement('div');
-        entry.className = 'album-entry';
-        entry.innerHTML = `
-          <div class="album-date">📅 ${item.date}</div>
-          <div class="album-photos">
-            <img src="${item.photo1}" alt="Photo de Toi">
-            <img src="${item.photo2}" alt="Photo de Elle">
-          </div>
-        `;
-        albumGrid.appendChild(entry);
-      });
-    }
-
-    // Mise à jour de l'interface utilisateur
     function updateUI() {
       const today = new Date();
       const isSunday = (today.getDay() === 0);
@@ -180,46 +131,27 @@
       const deleteP2 = document.getElementById('delete-p2');
       const statusMsg = document.getElementById('status-message');
 
-      // Mise à jour des badges
       badgeP1.textContent = p1Image ? "[Toi] : Photo envoyée !" : "[Toi] : En attente";
       badgeP1.className = `badge ${p1Image ? 'ready' : 'missing'}`;
       
       badgeP2.textContent = p2Image ? "[Elle] : Photo envoyée !" : "[Elle] : En attente";
       badgeP2.className = `badge ${p2Image ? 'ready' : 'missing'}`;
 
-      // Affichage photo 1 + bouton effacer
-      if (p1Image) {
-        imgP1.src = p1Image;
-        imgP1.classList.remove('hidden');
-        deleteP1.classList.remove('hidden');
-      } else {
-        imgP1.classList.add('hidden');
-        deleteP1.classList.add('hidden');
-      }
+      if (p1Image) { imgP1.src = p1Image; imgP1.classList.remove('hidden'); deleteP1.classList.remove('hidden'); }
+      else { imgP1.classList.add('hidden'); deleteP1.classList.add('hidden'); }
 
-      // Affichage photo 2 + bouton effacer
-      if (p2Image) {
-        imgP2.src = p2Image;
-        imgP2.classList.remove('hidden');
-        deleteP2.classList.remove('hidden');
-      } else {
-        imgP2.classList.add('hidden');
-        deleteP2.classList.add('hidden');
-      }
+      if (p2Image) { imgP2.src = p2Image; imgP2.classList.remove('hidden'); deleteP2.classList.remove('hidden'); }
+      else { imgP2.classList.add('hidden'); deleteP2.classList.add('hidden'); }
 
       const bothUploaded = p1Image && p2Image;
 
       if (bothUploaded && isSunday) {
-        // Condition validée : Défloutage et enregistrement dans l'album !
         imgP1.classList.remove('blurred');
         imgP2.classList.remove('blurred');
         overlayP1.style.display = 'none';
         overlayP2.style.display = 'none';
         statusMsg.textContent = "✨ Bon dimanche ! Vos deux photos sont enfin révélées.";
-        
-        checkAndSaveToAlbum();
       } else {
-        // Flou conservé
         imgP1.classList.add('blurred');
         imgP2.classList.add('blurred');
         overlayP1.style.display = 'flex';
@@ -236,12 +168,7 @@
           overlayP2.textContent = "🔒 Se débloque dimanche matin";
         }
       }
-
-      renderAlbum();
     }
-
-    // Lancement
-    updateUI();
   </script>
 </body>
 </html>
