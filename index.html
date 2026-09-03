@@ -33,7 +33,7 @@
       </div>
     </section>
 
-    <!-- Zone d'affichage des photos -->
+    <!-- Zone d'affichage des photos de la semaine -->
     <section class="photos-grid">
       <!-- Photo 1 -->
       <div class="card">
@@ -42,6 +42,7 @@
           <div id="overlay-p1" class="overlay">En attente de la photo...</div>
         </div>
         <p class="card-label">Photo de [Toi]</p>
+        <button id="delete-p1" class="btn-delete hidden" onclick="deletePhoto('partner1')">🗑️ Changer la photo</button>
       </div>
 
       <!-- Photo 2 -->
@@ -51,17 +52,30 @@
           <div id="overlay-p2" class="overlay">En attente de la photo...</div>
         </div>
         <p class="card-label">Photo de [Elle]</p>
+        <button id="delete-p2" class="btn-delete hidden" onclick="deletePhoto('partner2')">🗑️ Changer la photo</button>
       </div>
     </section>
 
-    <button class="btn-reset" onclick="resetWeek()">🔄 Réinitialiser la semaine</button>
+    <!-- Section Album Souvenir -->
+    <section class="album-section">
+      <h2>📖 Notre Album Souvenir</h2>
+      <p class="album-subtitle">Toutes vos photos débloquées au fil des semaines</p>
+      <div id="album-grid" class="album-grid">
+        <!-- Les photos archivées s'afficheront ici -->
+      </div>
+      <p id="empty-album-msg" class="empty-msg">Aucun souvenir archivé pour l'instant. Rendez-vous ce dimanche !</p>
+    </section>
+
+    <button class="btn-reset" onclick="resetWeek()">🔄 Réinitialiser la semaine actuelle</button>
   </main>
 
   <script>
-    // Chargement initial des images depuis le stockage local
+    // Variables locales
     let p1Image = localStorage.getItem('partner1_photo') || null;
     let p2Image = localStorage.getItem('partner2_photo') || null;
+    let album = JSON.parse(localStorage.getItem('our_album')) || [];
 
+    // Gestion de l'envoi de fichier
     function handleFileUpload(event, partner) {
       const file = event.target.files[0];
       if (!file) return;
@@ -81,8 +95,23 @@
       reader.readAsDataURL(file);
     }
 
+    // Supprimer / Changer une photo individuelle
+    function deletePhoto(partner) {
+      if (confirm("Voulez-vous supprimer cette photo pour en mettre une autre ?")) {
+        if (partner === 'partner1') {
+          localStorage.removeItem('partner1_photo');
+          p1Image = null;
+        } else {
+          localStorage.removeItem('partner2_photo');
+          p2Image = null;
+        }
+        updateUI();
+      }
+    }
+
+    // Réinitialiser uniquement la semaine courante
     function resetWeek() {
-      if (confirm("Voulez-vous supprimer les photos de cette semaine ?")) {
+      if (confirm("Voulez-vous supprimer les photos de la semaine en cours ?")) {
         localStorage.removeItem('partner1_photo');
         localStorage.removeItem('partner2_photo');
         p1Image = null;
@@ -91,6 +120,52 @@
       }
     }
 
+    // Sauvegarder dans l'album souvenir (automatique le dimanche)
+    function checkAndSaveToAlbum() {
+      const today = new Date();
+      const dateString = today.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+      
+      // Vérifier si cette paire de photos est déjà enregistrée dans l'album
+      const alreadySaved = album.some(item => item.date === dateString);
+
+      if (!alreadySaved && p1Image && p2Image) {
+        album.push({
+          date: dateString,
+          photo1: p1Image,
+          photo2: p2Image
+        });
+        localStorage.setItem('our_album', JSON.stringify(album));
+      }
+    }
+
+    // Rendu visuel de l'album
+    function renderAlbum() {
+      const albumGrid = document.getElementById('album-grid');
+      const emptyMsg = document.getElementById('empty-album-msg');
+      albumGrid.innerHTML = '';
+
+      if (album.length === 0) {
+        emptyMsg.style.display = 'block';
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+
+      album.forEach((item) => {
+        const entry = document.createElement('div');
+        entry.className = 'album-entry';
+        entry.innerHTML = `
+          <div class="album-date">📅 ${item.date}</div>
+          <div class="album-photos">
+            <img src="${item.photo1}" alt="Photo de Toi">
+            <img src="${item.photo2}" alt="Photo de Elle">
+          </div>
+        `;
+        albumGrid.appendChild(entry);
+      });
+    }
+
+    // Mise à jour de l'interface utilisateur
     function updateUI() {
       const today = new Date();
       const isSunday = (today.getDay() === 0);
@@ -101,41 +176,48 @@
       const overlayP2 = document.getElementById('overlay-p2');
       const badgeP1 = document.getElementById('badge-p1');
       const badgeP2 = document.getElementById('badge-p2');
+      const deleteP1 = document.getElementById('delete-p1');
+      const deleteP2 = document.getElementById('delete-p2');
       const statusMsg = document.getElementById('status-message');
 
-      // Mettre à jour les badges de statut
+      // Mise à jour des badges
       badgeP1.textContent = p1Image ? "[Toi] : Photo envoyée !" : "[Toi] : En attente";
       badgeP1.className = `badge ${p1Image ? 'ready' : 'missing'}`;
       
       badgeP2.textContent = p2Image ? "[Elle] : Photo envoyée !" : "[Elle] : En attente";
       badgeP2.className = `badge ${p2Image ? 'ready' : 'missing'}`;
 
-      // Gestion de la photo 1
+      // Affichage photo 1 + bouton effacer
       if (p1Image) {
         imgP1.src = p1Image;
         imgP1.classList.remove('hidden');
+        deleteP1.classList.remove('hidden');
       } else {
         imgP1.classList.add('hidden');
+        deleteP1.classList.add('hidden');
       }
 
-      // Gestion de la photo 2
+      // Affichage photo 2 + bouton effacer
       if (p2Image) {
         imgP2.src = p2Image;
         imgP2.classList.remove('hidden');
+        deleteP2.classList.remove('hidden');
       } else {
         imgP2.classList.add('hidden');
+        deleteP2.classList.add('hidden');
       }
 
-      // RÈGLE : Les deux ont posté ET on est dimanche
       const bothUploaded = p1Image && p2Image;
 
       if (bothUploaded && isSunday) {
-        // Condition validée : Défloutage complet !
+        // Condition validée : Défloutage et enregistrement dans l'album !
         imgP1.classList.remove('blurred');
         imgP2.classList.remove('blurred');
         overlayP1.style.display = 'none';
         overlayP2.style.display = 'none';
         statusMsg.textContent = "✨ Bon dimanche ! Vos deux photos sont enfin révélées.";
+        
+        checkAndSaveToAlbum();
       } else {
         // Flou conservé
         imgP1.classList.add('blurred');
@@ -154,9 +236,11 @@
           overlayP2.textContent = "🔒 Se débloque dimanche matin";
         }
       }
+
+      renderAlbum();
     }
 
-    // Exécution au chargement
+    // Lancement
     updateUI();
   </script>
 </body>
