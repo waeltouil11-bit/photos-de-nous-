@@ -88,19 +88,29 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Pour le 2ème site, remplacez par "currentWeek_v2"
-    const collectionName = "currentWeek";
+    // Pour le 2ème site, mettez "currentWeek_v2"
+    const baseCollection = "currentWeek";
+
+    // Fonction pour obtenir la clé unique de la semaine en cours (ex: "2026-W36")
+    function getWeekDocId() {
+      const now = new Date();
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      const pastDaysOfYear = (now - startOfYear) / 86400000;
+      const weekNum = Math.ceil((pastDaysOfYear + startOfYear.getDay() + 1) / 7);
+      return `${now.getFullYear()}-W${weekNum}`;
+    }
+
+    const currentWeekId = getWeekDocId();
 
     let p1Image = null;
     let p2Image = null;
     let isRevealed = false;
 
-    // Galerie globale pour la navigation plein écran
     let galleryList = [];
     let currentGalleryIndex = 0;
 
-    // Écoute de la semaine en cours
-    db.collection(collectionName).doc("photos").onSnapshot((doc) => {
+    // Écoute automatique de la semaine actuelle
+    db.collection(baseCollection).doc(currentWeekId).onSnapshot((doc) => {
       if (doc.exists) {
         const data = doc.data();
         p1Image = data.partner1 || null;
@@ -113,7 +123,7 @@
     });
 
     // Écoute de l'album de souvenirs
-    db.collection(collectionName + "_album").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
+    db.collection(baseCollection + "_album").orderBy("timestamp", "desc").onSnapshot((snapshot) => {
       const albumGrid = document.getElementById('album-grid');
       const emptyMsg = document.getElementById('empty-album-msg');
       albumGrid.innerHTML = "";
@@ -127,12 +137,8 @@
           const data = doc.data();
           const dateStr = data.date || "Souvenir";
 
-          if (data.partner1) {
-            galleryList.push({ src: data.partner1, caption: `[Toi] - ${dateStr}` });
-          }
-          if (data.partner2) {
-            galleryList.push({ src: data.partner2, caption: `[Elle] - ${dateStr}` });
-          }
+          if (data.partner1) galleryList.push({ src: data.partner1, caption: `[Toi] - ${dateStr}` });
+          if (data.partner2) galleryList.push({ src: data.partner2, caption: `[Elle] - ${dateStr}` });
 
           const item = document.createElement('div');
           item.className = 'album-item-compact';
@@ -170,7 +176,7 @@
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           const base64Image = canvas.toDataURL('image/jpeg', 0.7);
 
-          db.collection(collectionName).doc("photos").set({
+          db.collection(baseCollection).doc(currentWeekId).set({
             [partner]: base64Image
           }, { merge: true }).then(() => {
             document.getElementById('status-message').textContent = "Photo envoyée !";
@@ -187,7 +193,7 @@
 
     async function deletePhoto(partner) {
       if (confirm("Voulez-vous supprimer cette photo ?")) {
-        await db.collection(collectionName).doc("photos").set({
+        await db.collection(baseCollection).doc(currentWeekId).set({
           [partner]: firebase.firestore.FieldValue.delete()
         }, { merge: true });
       }
@@ -195,7 +201,7 @@
 
     async function saveToAlbum() {
       const todayStr = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
-      const albumDocRef = db.collection(collectionName + "_album").doc(todayStr);
+      const albumDocRef = db.collection(baseCollection + "_album").doc(currentWeekId);
 
       const docSnap = await albumDocRef.get();
       if (!docSnap.exists && p1Image && p2Image) {
@@ -265,11 +271,9 @@
       }
     }
 
-    // Navigation Galerie
     function openCurrentPhoto(imgId) {
       if (!isRevealed) return;
-      const imgSrc = document.getElementById(imgId).src;
-      openGalleryBySrc(imgSrc);
+      openGalleryBySrc(document.getElementById(imgId).src);
     }
 
     function openGalleryBySrc(src) {
@@ -307,7 +311,6 @@
       document.getElementById('photo-modal').classList.add('hidden');
     }
 
-    // Gestion du swipe tactile
     let touchStartX = 0;
     let touchEndX = 0;
     const modal = document.getElementById('photo-modal');
@@ -318,17 +321,9 @@
 
     modal.addEventListener('touchend', (e) => {
       touchEndX = e.changedTouches[0].screenX;
-      handleSwipe();
+      if (touchEndX < touchStartX - 50) navigateGallery(1);
+      if (touchEndX > touchStartX + 50) navigateGallery(-1);
     });
-
-    function handleSwipe() {
-      if (touchEndX < touchStartX - 50) {
-        navigateGallery(1); // Swipe vers la gauche -> suivant
-      }
-      if (touchEndX > touchStartX + 50) {
-        navigateGallery(-1); // Swipe vers la droite -> précédent
-      }
-    }
   </script>
 </body>
 </html>
